@@ -7,7 +7,7 @@
 ! LLNL-CODE-701993.
 ! Title: Fission Reaction Event Yield Algorithm (FREYA), Version: 2.0
 ! OCEC-16-151
-! All rights reserved.
+! All rights reserved..
 !
 ! This file is part of FREYA, Version:  2.0. For details, see <http://nuclear.llnl.gov/simulations>.
 !
