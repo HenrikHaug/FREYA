@@ -1,0 +1,24 @@
+#!/bin/sh
+#
+# run_test [1|2|3|4|5|6]
+#
+# default is to run all 6
+#
+# Jerome Verbeke, 10/30/2014
+# mods by Doug Wright
+# mods by Jerome Verbeke 12/12/2018
+
+#....compile and run the tests
+#....process command line arguments
+if [ $# -eq 0 ]; then
+    for n in {1..6}; do 
+        cd runtest$n
+        ./recipe
+        cd ..
+    done
+else
+    #....select which test to run
+    cd runtest$1
+    ./recipe
+    cd ..
+fi

@@ -1,0 +1,1 @@
+/Library/Developer/CommandLineTools/usr/bin/c++  -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX11.3.sdk -Wl,-search_paths_first -Wl,-headerpad_max_install_names CMakeFiles/events.dir/events.cpp.o -o events  -Wl,-rpath,/Users/henrikhaug/Documents/FREYA/fission_v2.0.5/lib /Users/henrikhaug/Documents/FREYA/fission_v2.0.5/lib/libFission.dylib 

@@ -1,0 +1,35 @@
+#!/bin/bash
+#
+# Jerome Verbeke, April 17, 2017
+# recipe to build a test case
+# Prerequisite: cmake in your PATH
+#
+
+# Step 1: Setting up the env
+# --------------------------
+source ../../setup
+
+# Step 2: Build the test case
+# ---------------------------------------
+echo Compiling and linking test case
+module load cmake # cmake version > 3 REQUIRED on Mac to set RPATH in libFission
+# [ -e build ] && rm -rf build
+[ ! -e build ] && mkdir build
+cd build
+cmake ../src; make
+
+# Step 3: Run the sample code
+# ---------------------------
+echo "running testSpNuDist (takes 56 seconds on aztec)"
+tests='testEngConsAllActNudist.res testEngConsAllActSpec.res testEngConsAllActSpecTotal.res testEngConsAllActTotal.res'
+for _test in ${tests}; do
+  [ -e ${_test} ] && rm -f ${_test}
+done
+time ./testEngConsAllActinides
+
+# Step 4: diff to baseline
+# ---------------------------
+echo diffing with baseline
+for _test in ${tests}; do
+  diff -s ${_test} ../baseline/${_test}.baseline
+done
