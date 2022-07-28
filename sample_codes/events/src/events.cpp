@@ -11,7 +11,7 @@ using namespace std;
 
 extern "C" {
    extern int msfreya_setup_c_();
-   extern int msfreya_event_c_(int,double,double,double*,int*,int*,double*,int*,int*,double*,int*,double*,int*,double*,int*);
+   extern int msfreya_event_c_(int,double,double,double*,int*,int*,double*,int*,int*,double*,int*,double*,int*,double*,int*,int*,int*);
    extern int msfreya_getids_c_(int*,int*,int*);
    extern int msfreya_getffenergies_c_(double*,double*);
    extern int msfreya_getniso_c_(int *,int *);
@@ -33,16 +33,16 @@ bool FREYA_event(FILE* fp, int Z, int A, int fissionindex, double ePart,
 FILE* openfile(char* name);
 void output_compound(FILE* fp, int Z, int A, double energy_MeV, int niterations);
 void output_ff(FILE* fp, int fissionindex, int Z, int A, double exc_erg,
-               int nmultff1, int gmultff1, double PP [5], int Sf);
+               int nmultff1, int gmultff1, double PP [5], int Sf); //, int Sf1, int Sf2);
 void output_secondaries(FILE* fp, int ptypes [mMax], double particles [4*3*mMax],
                         int npart2skip);
 void readinput(int& Z, int& A, double& E, int& fissiontype, int& iterations, char outputfilename [1024]);
 
 int main() {
-   int iterations=10000;        // Number of fission events to be generated
-   double energy_MeV = 25.3e-9; // thermal
-   int Z = 94;
-   int A = 239;
+   int iterations=10;        // Number of fission events to be generated
+   double energy_MeV = 4;   //25.3e-9; // thermal
+   int Z = 92;
+   int A = 235;
    char outputfilename [1024];
    sprintf(outputfilename, "history.res");
    int fissiontype = 1; // 0: spontaneous fission
@@ -135,7 +135,7 @@ bool FREYA_event(FILE* fp, int Z, int A, int fissionindex, double ePart,
    //   ZA for photofission
    //   Z(A-1) for neutron-induced fission
    // treat photofission as if it were neutron-induced fission
-   if (fissiontype==2) isotope--;
+   //if (fissiontype==2) isotope--;
 
    // Find the index of the fission/isotope
    bool foundfission=false;
@@ -146,9 +146,11 @@ bool FREYA_event(FILE* fp, int Z, int A, int fissionindex, double ePart,
          break;
       }
    if (!foundfission) {
-      fprintf(stderr, "ABORT: fission type %d not supported for isotope %d\n", fissiontype, isotope);
+      fprintf(stderr, "ABORTT: fission type %d not supported for isotope %d\n", fissiontype, isotope);
       exit(1);
    }
+
+
 
    int iK=iKm1+1; // FORTRAN indexing
    int freyaA=isotope-1000*Z;
@@ -157,6 +159,15 @@ bool FREYA_event(FILE* fp, int Z, int A, int fissionindex, double ePart,
    freyaA+=(fissiontype==0)?0:1;
    msfreya_reseterrorflag_c_();
 
+
+   if (ePart<0) {
+      fissiontype=2;
+   }
+
+   double sepni;
+   sepni = msfreya_sepn_c_(iK,Z,freyaA);
+   if (msfreya_errorflagset_c_()==1) return false;
+
    // Compute nucleus excitation energy for this event
    double eps0;
    double En;
@@ -164,32 +175,39 @@ bool FREYA_event(FILE* fp, int Z, int A, int fissionindex, double ePart,
       case 0:
          // spontaneous fission
          eps0 = 0.;
-         En=0.;
+         En= 0.;
          break;
       case 1:
          // neutron-induced fission
+         std::cout << "Hello1 " << std::endl;
+         //double sepni;
+         //sepni = msfreya_sepn_c_(iK,Z,freyaA);
+         //if (msfreya_errorflagset_c_()==1) return false;
+
+         //if (fissiontype==1) {
+            // neutron-induced fission
+         eps0 = sepni+ePart;
+         En=ePart;
+         //}
+         break;
+
       case 2:
          // photon-induced fission
-         double sepni;
-         sepni = msfreya_sepn_c_(iK,Z,freyaA);
-         if (msfreya_errorflagset_c_()==1) return false;
+         std::cout << "Hello2 " << std::endl;
 
-         if (fissiontype==1) {
-            // neutron-induced fission
-            eps0 = sepni+ePart;
-            En=ePart;
-         } else if (fissiontype==2) {
-            // photon-induced fission
-            eps0 = ePart;
-            En=ePart-sepni;
-            if (En<0) En=0.;
-         }
+         //else if (fissiontype==2) {
+          // photon-induced fission
+         eps0 = abs(ePart);
+         std::cout << "Hello3 " << std::endl;
+         En=ePart;
+         //}
          break;
       default:
          fprintf(stderr, "ABORT: fission type %d not supported\n", fissiontype);
          exit(1);
          break;
    }
+   cout << "eps0 " << eps0 << " En " << En << endl;
 
    // ...generate fission event
    // declare those, msfreya_event needs them
@@ -206,6 +224,10 @@ bool FREYA_event(FILE* fp, int Z, int A, int fissionindex, double ePart,
    int Z2, A2;  // Charge & mass number of fission fragment 2
 
    int S0;
+   int Sf1;
+   int Sf2;
+
+   std::cout << "Hello4 " << std::endl;
 
    double W0=msfreya_gsmassn_c_(Z, freyaA);  // ground-state mass of nucleus
    if (msfreya_errorflagset_c_()==1) return false;
@@ -232,11 +254,15 @@ bool FREYA_event(FILE* fp, int Z, int A, int fissionindex, double ePart,
    double preEvapExcEnergyff[2]; // fission fragment pre- and post-evaporation
    double postEvapExcEnergyff[2];// excitation energy
 
-   msfreya_event_c_(iK,En,eps0,&(P0[0]),&Z1,&A1,&(P1[0]),&Z2,&A2,&(P2[0]),&mult,&(particles[0]),&(ptypes[0]),&(ndir[0]),&S0);
-   if (msfreya_errorflagset_c_()==1) return false;
+   std::cout << "Hello5 " << std::endl;
 
+   msfreya_event_c_(iK,En,eps0,&(P0[0]),&Z1,&A1,&(P1[0]),&Z2,&A2,&(P2[0]),&mult,&(particles[0]),&(ptypes[0]),&(ndir[0]),&S0,&Sf1,&Sf2);
+   if (msfreya_errorflagset_c_()==1) return false;
+   std::cout << "Hello5-5 " << std::endl;
    msfreya_getids_c_(&(ptypes0[0]),&(ptypes1[0]),&(ptypes2[0]));
    msfreya_getffenergies_c_(preEvapExcEnergyff,postEvapExcEnergyff);
+
+   std::cout << "Hello6 " << std::endl;
 
    // count number of pre-fission neutrons/photons emitted
    nmultff0=0;
@@ -253,6 +279,8 @@ bool FREYA_event(FILE* fp, int Z, int A, int fissionindex, double ePart,
        break;
      }
    }
+
+   std::cout << "Hello7 " << std::endl;
 
    // count number of neutrons/photons for fission fragment 1
    nmultff1=0;
@@ -285,7 +313,7 @@ bool FREYA_event(FILE* fp, int Z, int A, int fissionindex, double ePart,
        break;
      }
    }
-   //S0 = 20;
+   //S0 = 4;
    //....print results for pre-fission neutrons
    output_ff(fp, fissionindex+1, Z, freyaA-nmultff0, eps0, nmultff0, gmultff0, P0, S0);
    output_secondaries(fp, ptypes0, particles, 0);
@@ -294,14 +322,14 @@ bool FREYA_event(FILE* fp, int Z, int A, int fissionindex, double ePart,
    // light fission fragment
    double W0_ff1=msfreya_gsmassn_c_(Z1, A1-nmultff1);  // ground-state mass of ff #1
    if (msfreya_errorflagset_c_()==1) return false;
-   output_ff(fp, fissionindex+1, Z1, A1, preEvapExcEnergyff[0], nmultff1, gmultff1, P1, S0);
+   output_ff(fp, fissionindex+1, Z1, A1, preEvapExcEnergyff[0], nmultff1, gmultff1, P1, Sf1);
    output_secondaries(fp, ptypes1, particles, npart0);
 
    //....print results for fission fragment #2
    // heavy fission fragment
    double W0_ff2=msfreya_gsmassn_c_(Z2, A2-nmultff2);  // ground-state mass of ff #2
    if (msfreya_errorflagset_c_()==1) return false;
-   output_ff(fp, fissionindex+1, Z2, A2, preEvapExcEnergyff[1], nmultff2, gmultff2, P2, S0);
+   output_ff(fp, fissionindex+1, Z2, A2, preEvapExcEnergyff[1], nmultff2, gmultff2, P2, Sf2);
    output_secondaries(fp, ptypes2, particles, npart0+npart1);
 
    //std::cout << "S0: " << S0 << std::endl;
@@ -315,12 +343,12 @@ void output_compound(FILE* fp, int Z, int A, double energy_MeV, int niterations)
 }
 
 void output_ff(FILE* fp, int fissionindex, int Z, int A, double exc_erg,
-               int nmultff, int gmultff, double PP [5], int S0) {
+               int nmultff, int gmultff, double PP [5], int Sffs) {
    double s = pow(PP[1],2)+pow(PP[2],2)+pow(PP[3],2);
    double ke_ff=0.5*s/PP[4];
 
    //fprintf(fp,"%5d\n");
-   fprintf(fp,"%5d%5d\n",gmultff,S0);
+   fprintf(fp,"%5d%5d\n",gmultff,Sffs);
    //fprintf(fp,"%5d\n",nmultff);
 
 
@@ -395,7 +423,7 @@ void readinput(int& Z, int& A, double& E, int& fissiontype, int& iterations, cha
   cout << "Output file name: ";
   cin >> outputfilename;
   fissiontype=1;
-  if (E<=0) fissiontype=0;
+  if (E==0) fissiontype=0;
   if (0==fissiontype)
     cout << iterations << " spontaneous fissions of " << Z << A << endl;
   else
