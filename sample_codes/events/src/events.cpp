@@ -32,7 +32,7 @@ FILE* openfile(char* name);
 void output_compound(FILE* fp, int Z, int A, double energy_MeV, int niterations);
 void output_ff(FILE* fp, int fissionindex, int Z, int A, double exc_erg,int nmultff1, int gmultff1, double PP [5], int Sf);
 void output_secondaries(FILE* fp, int ptypes [mMax], double particles [4*3*mMax], int npart2skip);
-void readinput(int& Z, int& A, double& E, int& fissiontype, int& iterations, char outputfilename [1024], int S_mean, int S_distrebution);
+void readinput(int& Z, int& A, double& E, int& fissiontype, int& iterations, char outputfilename [1024], int& S_mean, int& S_distrebution);
 void output_ExJ(FILE* fp_ExJ, int Z2, int A2, double exc_erg, int Sf, int nmult, int gmult);
 void output_photons(FILE* fp, int ptypes [mMax], double particles [4*3*mMax], int npart2skip);
 
@@ -44,7 +44,7 @@ int main() {
    int Z = 92;
    int A = 238;
    int fissiontype;
-   int S_mean = 7;
+   int S_mean = 9;
    int S_distrebution = 1;
 
    char outputfilename [1024];
@@ -84,6 +84,7 @@ int main() {
    niso=nisosf+nisoif;
 
    readinput(Z, A, energy_MeV, fissiontype, iterations, outputfilename, S_mean, S_distrebution);
+   //cout << S_mean << endl;
 
    FILE* fp = openfile(outputfilename);
    output_compound(fp, Z, A+((fissiontype==0)?0:1), (fissiontype==0)?0.:energy_MeV, iterations);
@@ -284,7 +285,7 @@ bool FREYA_event(FILE* fp, FILE* fp_ExJ, FILE* fp_134Tegamma, FILE* fp_angmom, i
    double preEvapExcEnergyff[2]; // fission fragment pre-evaporation excitation energy
    double postEvapExcEnergyff[2];// fission fragment post-evaporation excitation energy
 
-   //cout << S_mean << "Value of eps0: " << S_distrebution  << "Value of A: " << A << endl;
+   //cout << S_mean << "Value of Sdistr: " << S_distrebution  << "Value of A: " << A << endl;
    msfreya_event_c_(iK,En,eps0,S_mean,S_distrebution,&(P0[0]),&Z1,&A1,&(P1[0]),&Z2,&A2,&(P2[0]),&mult,&(particles[0]),&(ptypes[0]),&(ndir[0]),&Sf0,&Sf1,&Sf2);
    if (msfreya_errorflagset_c_()==1) return false;
 
@@ -454,7 +455,7 @@ void output_photons(FILE* fp, int ptypes [mMax], double particles [4*3*mMax], in
 
 //   return;
 //}
-void readinput(int& Z, int& A, double& E, int& fissiontype, int& iterations, char outputfilename [1024], int S_mean, int S_distrebution) {
+void readinput(int& Z, int& A, double& E, int& fissiontype, int& iterations, char outputfilename [1024], int& S_mean, int& S_distrebution) {
   cout << "Value of Z: ";
   cin >> Z;
   cout << "Value of A: ";
@@ -469,6 +470,9 @@ void readinput(int& Z, int& A, double& E, int& fissiontype, int& iterations, cha
   cin >> S_mean;
   cout << "Sigma: ";
   cin >> S_distrebution;
+
+  std::cout << "The value of Sdistr is " << S_distrebution << std::endl;
+
   if (E==0){
      fissiontype = 0;
      cout << iterations << " spontaneous fissions of " << Z << A << endl;

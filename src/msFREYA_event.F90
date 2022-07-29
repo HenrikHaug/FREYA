@@ -370,7 +370,7 @@
         iA00=iA0                              ! >  compound
         iN00=iA00-iZ00                        !>   nucleus.
         eps00=abs(Einc)                       !    Excitation (incl rot)
-        !S_mean = 5; S_distrebution = 1
+        !S_mean = 7; S_distrebution = 4
    31   S00 = S_mean + S_distrebution*xnormal(iseed) ! DG; need to implement mean and sigma from events.cpp
         if (S00.lt.0.0) goto 31
         SSx = 0; SSy = 0; SSz = 0
@@ -478,7 +478,7 @@
 !       z=-cos(angle)*sinth
 ! Resulting angular momentum SS0 = S * n x PP0:
         S=S*sqrt(rng(iseed))*2    ! spin magnitude/direction:
-        Sw=s
+        !Sw=s
         SS0(1)= S*(sin(angle)*costh*cosphi+cos(angle)*sinphi) ! Sx
         SS0(2)= S*(sin(angle)*costh*sinphi-cos(angle)*cosphi) ! Sy
         SS0(3)=-S* sin(angle)*sinth                           ! Sz
