@@ -67,8 +67,8 @@
 !       fully absorbed (so we ignore pre-equilibrium emission for now),
 !       yielding the linear & angular momenta as well as the total excitation.
 
-      SUBROUTINE msfreya_event_c(iK,Einc,eps0,PP0 &
-      ,iZ1,iA1,PP1,iZ2,iA2,PP2,m,p,id,ndir,Sw) &
+      SUBROUTINE msfreya_event_c(iK,Einc,eps0,S_mean,S_distrebution,PP0 &
+      ,iZ1,iA1,PP1,iZ2,iA2,PP2,m,p,id,ndir,Sw,Sw1,Sw2) &
       bind (C, name="msfreya_event_c_")
 !
 !      This subroutine serves as an "overloaded" function for
@@ -82,6 +82,8 @@
       implicit none
 
       integer (kind=c_int), value :: iK
+      integer (kind=c_int), value :: S_mean
+      integer (kind=c_int), value :: S_distrebution
       real (kind=c_double), value :: Einc,eps0
       real (kind=c_double), dimension(0:4) :: PP0    ! Four-momentum of the fissioning nucleus
       real (kind=c_double), dimension(0:4) :: PP1    ! Four-momentum of the 1st evaporating nucleus
@@ -89,12 +91,14 @@
       real (kind=c_double), dimension(1:3) :: ndir   ! normalized direction of the incident neutron
                                                     ! (0,0,0) for random
       integer (kind=c_int) :: iZ1,iA1,iZ2,iA2
-      integer (kind=c_int) :: Sw
+      integer (kind=c_int) :: Sw,Sw1,Sw2
       integer (kind=c_int) :: m
       real (kind=c_double), dimension(4,3*mMax) :: p
       integer (kind=c_int), dimension(3*mMax) :: id
 
       integer :: iK_f
+      integer :: S_mean_f
+      integer :: S_distrebution_f
       double precision :: Einc_f,eps0_f
       double precision, dimension(0:4) :: PP0_f    ! Four-momentum of the fissioning nucleus
       double precision, dimension(0:4) :: PP1_f    ! Four-momentum of the 1st evaporating nucleus
@@ -102,7 +106,7 @@
       double precision, dimension(1:3) :: ndir_f   ! normalized direction of the incident neutron
                                        ! (0,0,0) for random
       integer :: iZ1_f,iA1_f,iZ2_f,iA2_f
-      integer :: Sw_f
+      integer :: Sw_f,Sw1_f,Sw2_f
       integer :: m_f
       double precision, dimension(4,3*mMax) :: p_f
       integer, dimension(3*mMax) :: id_f
@@ -112,14 +116,18 @@
       eps0_f=dble(eps0)
       PP0_f=dble(PP0)
       ndir_f=dble(ndir)
+      S_mean_f=int(S_mean)
+      S_distrebution_f=int(S_distrebution)
 
-      call msfreya_event(iK_f,Einc_f,eps0_f,PP0_f,iZ1_f,iA1_f,PP1_f,&
-                         iZ2_f,iA2_f,PP2_f,m_f,p_f,id_f,ndir_f,Sw_f)
+      call msfreya_event(iK_f,Einc_f,eps0_f,S_mean_f,S_distrebution_f,PP0_f,iZ1_f,iA1_f,PP1_f &
+                         ,iZ2_f,iA2_f,PP2_f,m_f,p_f,id_f,ndir_f,Sw_f,Sw1_f,Sw2_f)
       iA1=int(iA1_f,kind=c_int)
       iZ1=int(iZ1_f,kind=c_int)
       iA2=int(iA2_f,kind=c_int)
       iZ2=int(iZ2_f,kind=c_int)
       Sw=int(Sw_f,kind=c_int)
+      Sw1=int(Sw1_f,kind=c_int)
+      Sw2=int(Sw2_f,kind=c_int)
       m=int(m_f,kind=c_int)
       p=real(p_f,kind=c_double)
       id=int(id_f,kind=c_int)
@@ -132,8 +140,8 @@
 
 !************************************************************************
 
-      SUBROUTINE msfreya_event(iK,Einc,eps0,PP0 &
-      ,iZ1,iA1,PP1,iZ2,iA2,PP2,m,p,id,ndir,Sw)
+      SUBROUTINE msfreya_event(iK,Einc,eps0,S_mean,S_distrebution,PP0 &
+      ,iZ1,iA1,PP1,iZ2,iA2,PP2,m,p,id,ndir,Sw,Sw1,Sw2)
 !
 ! called from msFREYA_main to generate one complete fission event:
 !
@@ -194,6 +202,7 @@
       implicit none
 
       integer :: iK
+      integer :: S_mean,S_distrebution
       double precision :: Einc,eps0
       double precision :: S00                      ! Angular momentum
       double precision, dimension(0:4) :: PP0      ! Four-momentum of the fissioning nucleus
@@ -202,7 +211,7 @@
       double precision, dimension(1:3) :: ndir     ! normalized direction of the incident neutron
                                        ! (0,0,0) for random
       integer :: iZ1,iA1,iZ2,iA2
-      integer :: Sw
+      integer :: Sw,Sw1,Sw2
       integer :: m
       double precision, dimension(4,3*mMax) :: p
       integer, dimension(3*mMax) :: id ! Ejectile type
@@ -229,6 +238,7 @@
 
       integer KRASH
       data KRASH/0/
+
 
       integer iZ0,iA0,m0,Nth,iE,NthFission,iN1&
       ,iN2,i,j,l,m1,m2,n0,n,k,n1,n2&
@@ -360,6 +370,11 @@
         iA00=iA0                              ! >  compound
         iN00=iA00-iZ00                        !>   nucleus.
         eps00=abs(Einc)                       !    Excitation (incl rot)
+        !S_mean = 5; S_distrebution = 1
+   31   S00 = S_mean + S_distrebution*xnormal(iseed) ! DG; need to implement mean and sigma from events.cpp
+        if (S00.lt.0.0) goto 31
+        SSx = 0; SSy = 0; SSz = 0
+        Sw=S00
 #ifdef WRITEL6
         write (L6,"(' Fission of a nucleus having E* =',f7.3,' MeV')") &
               eps00
@@ -388,6 +403,7 @@
           if (SPINS) then
     3       continue
 #ifdef WRITEL6
+            !S=13.0; SSx=0.0; SSy=0.0; SSz=0.0
             write (L6,*) 'Specify the angular momentum S,sx,sy,sz:'
             write (L6,*) '   S: The magnitude of the angular ',&
                          'momentum \S;'
@@ -461,8 +477,8 @@
 !       y= cos(angle)*costh*sinphi+sin(angle)*cosphi
 !       z=-cos(angle)*sinth
 ! Resulting angular momentum SS0 = S * n x PP0:
-        S=S*sqrt(rng(iseed))    ! spin magnitude/direction:
-        Sw=S
+        S=S*sqrt(rng(iseed))*2    ! spin magnitude/direction:
+        Sw=s
         SS0(1)= S*(sin(angle)*costh*cosphi+cos(angle)*sinphi) ! Sx
         SS0(2)= S*(sin(angle)*costh*sinphi-cos(angle)*cosphi) ! Sy
         SS0(3)=-S* sin(angle)*sinth                           ! Sz
@@ -722,6 +738,8 @@
 ! Calculate fragment spin magnitudes:
         S1sq=S1x**2+S1y**2; Sf1=sqrt(S1sq)      ! Total spin of fragment 1
         S2sq=S2x**2+S2y**2; Sf2=sqrt(S2sq)      ! Total spin of fragment 2
+        Sw1=Sf1
+        Sw2=Sf2
 ! Class  E1rot=0.5*S1sq/Rot(iA1)                ! Rotational energy of fragm #1
 ! Class  E2rot=0.5*S2sq/Rot(iA2)                ! Rotational energy of fragm #2
         E1rot=hSsq(Sf1)/ROT(iA1)                ! Rotational energy of fragm #1
