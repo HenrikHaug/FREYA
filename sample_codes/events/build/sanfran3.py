@@ -147,4 +147,4 @@ plt.show()
 #plt.plot(ex_tot[:-6],JvsEx,'*')
 #plt.show()
 
-#trying to committ
+#trying to committ Jeg er dum
