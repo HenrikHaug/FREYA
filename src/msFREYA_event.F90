@@ -68,7 +68,7 @@
 !       yielding the linear & angular momenta as well as the total excitation.
 
       SUBROUTINE msfreya_event_c(iK,Einc,eps0,S_mean,S_distrebution,PP0 &
-      ,iZ1,iA1,PP1,iZ2,iA2,PP2,m,p,id,ndir,Sw,Sw1,Sw2) &
+      ,iZ1,iA1,PP1,iZ2,iA2,PP2,m,p,id,ndir,Sw,Sw1,Sw2,E_rot) &
       bind (C, name="msfreya_event_c_")
 !
 !      This subroutine serves as an "overloaded" function for
@@ -94,6 +94,7 @@
       integer (kind=c_int) :: Sw,Sw1,Sw2
       integer (kind=c_int) :: m
       real (kind=c_double), dimension(4,3*mMax) :: p
+      real (kind=c_double), value :: E_rot
       integer (kind=c_int), dimension(3*mMax) :: id
 
       integer :: iK_f
@@ -109,6 +110,7 @@
       integer :: Sw_f,Sw1_f,Sw2_f
       integer :: m_f
       double precision, dimension(4,3*mMax) :: p_f
+      real (kind=c_double) :: E_rot_f
       integer, dimension(3*mMax) :: id_f
 
       iK_f=int(iK)
@@ -120,7 +122,7 @@
       S_distrebution_f=int(S_distrebution)
 
       call msfreya_event(iK_f,Einc_f,eps0_f,S_mean_f,S_distrebution_f,PP0_f,iZ1_f,iA1_f,PP1_f &
-                         ,iZ2_f,iA2_f,PP2_f,m_f,p_f,id_f,ndir_f,Sw_f,Sw1_f,Sw2_f)
+                         ,iZ2_f,iA2_f,PP2_f,m_f,p_f,id_f,ndir_f,Sw_f,Sw1_f,Sw2_f,E_rot_f)
       iA1=int(iA1_f,kind=c_int)
       iZ1=int(iZ1_f,kind=c_int)
       iA2=int(iA2_f,kind=c_int)
@@ -131,6 +133,7 @@
       m=int(m_f,kind=c_int)
       p=real(p_f,kind=c_double)
       id=int(id_f,kind=c_int)
+      E_rot=real(E_rot_f,kind=c_double)
       PP0=real(PP0_f,kind=c_double)
       PP1=real(PP1_f,kind=c_double)
       PP2=real(PP2_f,kind=c_double)
@@ -141,7 +144,7 @@
 !************************************************************************
 
       SUBROUTINE msfreya_event(iK,Einc,eps0,S_mean,S_distrebution,PP0 &
-      ,iZ1,iA1,PP1,iZ2,iA2,PP2,m,p,id,ndir,Sw,Sw1,Sw2)
+      ,iZ1,iA1,PP1,iZ2,iA2,PP2,m,p,id,ndir,Sw,Sw1,Sw2,E_rot)
 !
 ! called from msFREYA_main to generate one complete fission event:
 !
@@ -214,6 +217,7 @@
       integer :: Sw,Sw1,Sw2
       integer :: m
       double precision, dimension(4,3*mMax) :: p
+      double precision :: E_rot
       integer, dimension(3*mMax) :: id ! Ejectile type
 
       double precision, dimension(3) :: SS0        ! Compound spin vector
@@ -373,6 +377,7 @@
         !S_mean = 7; S_distrebution = 4
    31   S00 = S_mean + S_distrebution*xnormal(iseed) ! DG; need to implement mean and sigma from events.cpp
         if (S00.lt.0.0) goto 31
+        if (S00.gt.sqrt(2.0*eps00*ROT(iA00))) goto 31
         SSx = 0; SSy = 0; SSz = 0
         Sw=S00
 #ifdef WRITEL6
@@ -746,7 +751,7 @@
         E2rot=hSsq(Sf2)/ROT(iA2)                ! Rotational energy of fragm #2
         if (E1rot+E2rot.ge.epsf) goto 17        ! Erot exceeds epsf, try again!
         epsf=epsf-E1rot-E2rot                   ! Total statistical erg (heat)
-
+        E_rot=E1rot+5.5
 #ifdef WRITEL6
         if (epsf.le.0.0) then
           write (L6,*) 'epsf<0:',epsf,iA1,iZ1
