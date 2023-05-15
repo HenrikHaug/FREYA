@@ -14,18 +14,22 @@ def Fraya_kjore(Ex,mean,sigma):
     sigma=sigma
     print(mean)
 
+    # definere lister
+    Tot_Ga_energy_pr_fis_l=[]       #total gamma energy pr fission
+    Gj_Ga_energy_l=[]               #gjennomsnitt gamma energi pr fisson
+    Gj_Ga_pr_fis_l=[]               #gjennomsnitt gamma pr fission
+    Ga_E_T=[]                       #gamma energi
+    Ga_multy_T=[]                   #total antall gamma
+    Total_spin_mother=[]            #total spin mother nucleus
+    Total_spin_l=[]                 #total spin lille fragment
+    Total_spin_t=[]                 #total spin tungt fragment
+    Tspinm=[]                       #total spin mother nucleus
+    Tspinl=[]                       #total spin lille fragment
+    Tspint=[]                       #total spin tungt fragment
 
-    Tot_Ga_energy_pr_fis_l=[]
-    Gj_Ga_energy_l=[]
-    Gj_Ga_pr_fis_l=[]
-    Ga_E_T=[]
-    Ga_multy_T=[]
-    Total_spin_mother=[]
-    Total_spin_l=[]
-    Total_spin_t=[]
-    Tspinm=[]
-    Tspinl=[]
-    Tspint=[]
+    ga_energy_pr_fis_output=[]      # gamma enrgi pr fisson
+    ga_energy_pr_fis_output_list=[[],[],[],[],[],[],[],[]] # for alle enerier og spins
+
     '''
     Ga_E=[]                 #gamma energy
     T_Ga_multy=0.0          #total gamma multiplisties
@@ -40,20 +44,20 @@ def Fraya_kjore(Ex,mean,sigma):
 
         print("Running FREYA with Smean: %.d  Ssigma %.d" % (mean[i], sigma[i]))
         p = Popen('./events', stdin=PIPE)
-        p.communicate(os.linesep.join(["92", "235", "%f" % Ex[i], "10", "Pu240.dat", "%d" % mean[i], "%d" % sigma[i]]))
+        p.communicate(os.linesep.join(["90", "231", "%f" % Ex[i], "10000", "Th232.dat", "%d" % mean[i], "%d" % sigma[i]]))
 
         #lese fra fil
-        infile=open('Pu240.dat','r')
+        infile=open('Th232.dat','r')
         lines=infile.readlines()
 
         #total number of fissions
         fissions=lines[0].split()           #total number of fissions
         nr_of_fissions=float(fissions[3])   #total number of fissions
         #print(nr_of_fissions)
-        Ga_E=[]                 #gamma energy
-        T_Ga_multy=0.0          #total gamma multiplisties
-        Ga_multy=[]             #gamma multipliseties
-        pfgm=[]                 #pre fission gammas
+        Ga_E=[]                 # gamma energy
+        T_Ga_multy=0.0          # total gamma multiplisties
+        Ga_multy=[]             # gamma multipliseties
+        pfgm=[]                 # pre fission gammas
         gml=[]                  # gamma multiplisity lett fragment
         gmt=[]                  # gamma multiplisity tungt fragment
         gel=[]                  # gamma energy lett fragment
@@ -61,6 +65,8 @@ def Fraya_kjore(Ex,mean,sigma):
         spin_initial=[]         # initial spin mother
         spin_lett=[]            # initial spin dougther lett
         spin_tung=[]            # initial spin dougther tung
+        #gj energi forsok
+        ga_energy_pr_fis=[]     # gamma enrgi pr fisson
 
 
 
@@ -110,12 +116,15 @@ def Fraya_kjore(Ex,mean,sigma):
                         Ga_E.append(float(v[j]))
                         Ga_E_T.append(float(v[j]))
                         T_Ga_multy+=1.0
+                        #forsok paa aa faa ut gamma energi pr fisson
+                        ga_energy_pr_fis.append(float(v[j]))
                         if k==0:
                             gel.append(float(v[j]))
                         if k==1:
                             get.append(float(v[j]))
                     i+=1
-
+            ga_energy_pr_fis_output.append(np.sum(ga_energy_pr_fis)/ingen)     # gamma enrgi pr fisson
+            ga_energy_pr_fis=[]
 
         Tot_Ga_energy=np.sum(Ga_E)
         #print(Tot_Ga_energy)
@@ -148,26 +157,26 @@ def Fraya_kjore(Ex,mean,sigma):
         #print(np.sum(Ga_E)/len(Ga_E))
 
         #print(np.sum(spin_lett),np.sum(spin_tung))
-    return (Tot_Ga_energy_pr_fis_l,Gj_Ga_energy_l,Gj_Ga_pr_fis_l,Ga_E_T,Ga_multy_T,Total_spin_mother,Total_spin_l,Total_spin_t,Tspinm,Tspinl,Tspint)
+    return (Tot_Ga_energy_pr_fis_l,Gj_Ga_energy_l,Gj_Ga_pr_fis_l,Ga_E_T,Ga_multy_T,Total_spin_mother,Total_spin_l,Total_spin_t,Tspinm,Tspinl,Tspint,ga_energy_pr_fis_output)
 
 
 #Ex=[0.5,1.0,1.5,2.0,2.5,3.0,3.5,4.0,4.5,5.0,5.25,5.5,5.75,6.25,6.5,6.75,7.0,7.25] #input energy to FREYA-> neutron energy if neutron induced, excitation energy if spontaneous fission
-#Ex=[-4,-7, -7, -7, -7, -7, -7, -7, -7, -11]
-#mean=[1,4, 6 , 8, 10, 12, 14, 15, 16, 10 ]
-#sigma=[0,2, 3 , 5, 5, 4, 3, 2, 2, 5]
-Ex = [-1]
-mean = [5]
-sigma = [1]
+Ex=[-4,-7, -7, -7, -7, -7, -7, -7]
+mean=[1,4, 5 , 6, 7, 8, 9, 14]
+sigma=[0,2, 2 , 2, 2, 3, 3, 6]
+#Ex = [-1]
+#mean = [5]
+#sigma = [1]
 
-Tot_Ga_energy_pr_fis_l, Gj_Ga_energy_l, Gj_Ga_pr_fis_l, Ga_E_T, Ga_multy_T,Total_spin_mother,Total_spin_l,Total_spin_t,Tspinm,Tspinl,Tspint=Fraya_kjore(Ex,mean,sigma)
+Tot_Ga_energy_pr_fis_l, Gj_Ga_energy_l, Gj_Ga_pr_fis_l, Ga_E_T, Ga_multy_T,Total_spin_mother,Total_spin_l,Total_spin_t,Tspinm,Tspinl,Tspint,ga_energy_pr_fis_output=Fraya_kjore(Ex,mean,sigma)
 #print(Gj_Ga_energy_l,Tot_Ga_energy_pr_fis_l)
 print(Tspinm)
 
-'''
+
 plt.plot(Ex,Tot_Ga_energy_pr_fis_l,'*',label="Total Gamma energy per fission")
 plt.title('Total Gamma energy per fission')
 plt.show()
-
+'''
 plt.plot(Ex,Gj_Ga_energy_l,'*',label="Gjennomsnitt Gamma energy")
 plt.title('Gjennomsnitt Gamma energy')
 plt.show()
@@ -183,8 +192,8 @@ plt.show()
 plt.hist(Ga_multy_T, bins = 16,histtype='step',log=True)
 plt.title('Gamma multiplisties')
 plt.show()
-'''
-'''
+
+
 plt.plot(np.abs(Ex),Tspinm,'+',label="Gjennomsnitt antall gammaer pre fission")
 plt.title('Total spin vs Ex')
 plt.show()
@@ -194,3 +203,7 @@ plt.plot(Ex,Tspint,'*',label="Gjennomsnitt antall gammaer pre fission")
 plt.title('Total spin of fragments')
 plt.show()
 '''
+
+plt.hist(ga_energy_pr_fis_output, bins = 160,histtype='step',log=True)
+plt.title('Gamma energy pr fission')
+plt.show()
